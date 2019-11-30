@@ -1,0 +1,6 @@
+[workspace]
+members = [
+        "async-brigade",
+        "thread-brigade",
+        "utils",
+]
