@@ -47,9 +47,11 @@ switches are more expensive than a `recvfrom` and `epoll` system call.
 If we run the test with 50000 tasks (and reduce the number of iterations to
 100), the speedup doesn't change much, but `thread-brigade` requires a 466MiB
 resident set, whereas `async-brigade` runs in around 21MiB. That's 10kiB of
-memory being actively touched by each task, versus 0.4kiB, about a twentieth. I
-assume the difference in memory consumption is due to the need for every thread
-to get its own pessimistically sized stack, versus a right-sized future.
+memory being actively touched by each task, versus 0.4kiB, about a twentieth.
+This isn't just the effect of pessimistically-sized thread stacks: we're looking
+at the resident set size, which shouldn't include pages allocated to the stack
+that the thread never actually touches. So the way Rust right-sizes futures
+seems really effective.
 
 This microbenchmark doesn't do much, but a real application would add to each
 task's working set, and that difference might become less significant. But I was
