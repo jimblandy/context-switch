@@ -37,7 +37,7 @@ to get its own pessimistically sized stack, versus a right-sized future.
 
 This microbenchmark doesn't do much, but a real application would add to each
 task's working set, and that difference might become less significant. But I was
-able to run async-brigade with 250,000 workers; I wasn't able to get my laptop
+able to run async-brigade with 250,000 tasks; I wasn't able to get my laptop
 to run 250,000 threads at all.
 
 There are differences in the system calls performed by the two versions:
