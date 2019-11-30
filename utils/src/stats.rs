@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Stats {
     x0s: usize,
     x1s: f64,

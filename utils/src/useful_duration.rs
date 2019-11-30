@@ -18,7 +18,7 @@ impl From<f64> for UsefulDuration {
 
 impl From<UsefulDuration> for f64 {
     fn from(d: UsefulDuration) -> Self {
-        d.0.as_secs_f64() + d.0.subsec_nanos() as f64 * 1e-9
+        d.0.as_secs_f64()
     }
 }
 
