@@ -15,6 +15,7 @@ fn pipe() -> Result<Pipe, std::io::Error> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     const NUM_TASKS: usize = 500;
+    const NUM_WARMUP_REPS: usize = 100;
     const NUM_REPS: usize = 10000;
 
     let Pipe { read: mut upstream_read, write: mut first_write} = pipe()?;
@@ -32,9 +33,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         upstream_read = next_pipe.read;
     }
 
-    let mut stats = Stats::new();
-
     let mut buf = [0_u8; 1];
+
+    // Warm up.
+    for _i in 0..NUM_WARMUP_REPS {
+        first_write.write_all(b"*")?;
+        upstream_read.read(&mut buf)?;
+    }
+
+    let mut stats = Stats::new();
     for _i in 0..NUM_REPS {
         let start = Instant::now();
         first_write.write_all(b"*")?;
