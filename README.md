@@ -28,6 +28,22 @@ In these runs, I'm seeing 1.8 / 2.7 ≅ 0.67 or a 30% speedup from going async.
 The `thread-brigade` version has a resident set size of about 6.1MiB, whereas
 `async-brigade` runs in about 2.2MiB.
 
+There are differences in the system calls performed by the two versions:
+
+- In `thread-brigade`, each task does a single `recvfrom` and a `write` per
+  iteration, taking 5.5µs.
+
+- In `async-brigade`, each task does one `recvfrom` and one `write`, neither of
+  which block, and then one more `recvfrom`, which returns `EAGAIN` and suspends
+  the task. Then control returns to the executor, which calls `epoll` to see
+  which task to wake up next. All this takes 3.6µs.
+
+The `async-brigade` performance isn't affected much if we switch from Tokio's
+default multi-thread executor to a single-threaded executor, so it's not
+spending much time in kernel context switches. `thread-brigade` does a kernel
+context switch from each task to the next. I think this means that context
+switches are more expensive than a `recvfrom` and `epoll` system call.
+
 If we run the test with 50000 tasks (and reduce the number of iterations to
 100), the speedup doesn't change much, but `thread-brigade` requires a 466MiB
 resident set, whereas `async-brigade` runs in around 21MiB. That's 10kiB of
@@ -39,16 +55,6 @@ This microbenchmark doesn't do much, but a real application would add to each
 task's working set, and that difference might become less significant. But I was
 able to run async-brigade with 250,000 tasks; I wasn't able to get my laptop
 to run 250,000 threads at all.
-
-There are differences in the system calls performed by the two versions:
-
-- In `thread-brigade`, each task does a single `recvfrom` and a `write` per
-  iteration.
-
-- In `async-brigade`, each task does one `recvfrom` and one `write`, neither of
-  which block, and then one more `recvfrom`, which returns `EAGAIN` and suspends
-  the task. Then control returns to the executor, which calls `epoll` to see
-  which task to wake up next.
 
 ## Running tests with large numbers of threads
 
