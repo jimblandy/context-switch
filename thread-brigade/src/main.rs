@@ -51,8 +51,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         stats.push(UsefulDuration::from(end - start).into());
     }
 
-    println!("{} iterations, mean {} per iteration, stddev {}",
-             NUM_REPS,
+    println!("{} iterations, {} tasks, mean {} per iteration, stddev {}",
+             NUM_REPS, NUM_TASKS,
              UsefulDuration::from(stats.mean()),
              UsefulDuration::from(stats.population_stddev()));
 
