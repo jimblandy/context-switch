@@ -137,7 +137,7 @@ On Linux:
 
     A limit of `max` means that there's no limit. However, for the `pids`
     controller, limits set on parent cgroups also apply to their descendants,
-    so we need to check our ancestors:
+    so we need to check our ancestor groups:
 
         $ cat /sys/fs/cgroup/pids/user.slice/user-1000.slice/pids.max
         10813
