@@ -31,6 +31,16 @@ impl Extend<f64> for Stats {
     }
 }
 
+impl std::iter::FromIterator<f64> for Stats {
+    fn from_iter<T>(iter: T) -> Stats
+        where T: IntoIterator<Item = f64>
+    {
+        let mut s = Stats::new();
+        s.extend(iter);
+        s
+    }
+}
+
 #[test]
 fn pop_stddev() {
     let mut stats = Stats::new();
