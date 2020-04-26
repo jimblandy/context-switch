@@ -57,10 +57,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         stats.push(UsefulDuration::from(end - start).into());
     }
 
-    println!("{} iterations, {} tasks, mean {} per iteration, stddev {}",
+    println!("{} iterations, {} tasks, mean {} per iteration, stddev {} ({} per task per iter)",
              NUM_REPS, NUM_TASKS,
              UsefulDuration::from(stats.mean()),
-             UsefulDuration::from(stats.population_stddev()));
+             UsefulDuration::from(stats.population_stddev()),
+             UsefulDuration::from(stats.mean() / NUM_TASKS as f64));
 
     Ok(())
 }
