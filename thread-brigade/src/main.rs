@@ -18,18 +18,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     const NUM_WARMUP_REPS: usize = 100;
     const NUM_REPS: usize = 10000;
 
+    eprint!("{} iterations, {} tasks: ", NUM_REPS, NUM_TASKS);
+
     let Pipe { read: mut upstream_read, write: mut first_write} = pipe()?;
     for _i in 0..NUM_TASKS {
         let next_pipe = pipe()?;
         let mut downstream_write = next_pipe.write;
-        std::thread::spawn(move || -> Result<(), std::io::Error> {
+        std::thread::Builder::new()
+            .stack_size(1024 * 1024)
+            .spawn(move || -> Result<(), std::io::Error> {
             let mut buf = [0_u8; 1];
 
             loop {
                 upstream_read.read_exact(&mut buf)?;
                 downstream_write.write_all(&buf)?;
             }
-        });
+        })?;
         upstream_read = next_pipe.read;
     }
 
@@ -51,8 +55,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         stats.push(UsefulDuration::from(end - start).into());
     }
 
-    println!("{} iterations, {} tasks, mean {} per iteration, stddev {} ({} per task per iter)",
-             NUM_REPS, NUM_TASKS,
+    eprintln!("mean {} per iteration, stddev {} ({} per task per iter)",
              UsefulDuration::from(stats.mean()),
              UsefulDuration::from(stats.population_stddev()),
              UsefulDuration::from(stats.mean() / NUM_TASKS as f64));

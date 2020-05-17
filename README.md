@@ -105,11 +105,14 @@ On Linux:
 
     A cgroup is a collection of processes/threads on which you can impose system
     resource limits as a group. Cgroups themselves are arranged in trees called
-    *hierarchies*, with names that look like filesystem paths, and a 'root'
-    cgroup named `/`. There can be separate cgroup hierarchies for different
-    sorts of resources: memory, cpu cycles, network bandwidth, and so on. Within
-    a hierarchy, every process/thread on the system belongs to exactly one
-    cgroup, which it inherits from its parent process/thread.
+    *hierarchies*, where limits set on one cgroup apply to its descendant
+    cgroups' members as well. The cgroups in a hierarchy have names that look
+    like filesystem paths; the root cgroup is named `/`. The details get
+    byzantine, but the upshot is that (in 2020, Linux 5.5) a typical Linux
+    system has several independent hierarchies, each managing a different sort
+    of resource: memory, cpu cycles, network bandwidth, and so on. For each
+    hierarchy, every process/thread on the system belongs to exactly one cgroup,
+    which it inherits from the process/thread that created it.
 
     The `pids` controller limits the number of process IDs a cgroup can have.
     You can see which `pids` cgroup your shell is in like this:
@@ -126,7 +129,7 @@ On Linux:
 
         $ ls /sys/fs/cgroup/pids/user.slice/user-1000.slice/user@1000.service
         cgroup.clone_children  notify_on_release  pids.events  tasks
-        cgroup.procs	       pids.current	  pids.max
+        cgroup.procs	       pids.current	      pids.max
         $
 
     The file `pids.max` shows the limit this cgroup imposes on my shell:
@@ -136,8 +139,8 @@ On Linux:
         $
 
     A limit of `max` means that there's no limit. However, for the `pids`
-    controller, limits set on parent cgroups also apply to their descendants,
-    so we need to check our ancestor groups:
+    controller, at least, limits set on parent cgroups also apply to their
+    descendants, so we need to check our ancestor groups:
 
         $ cat /sys/fs/cgroup/pids/user.slice/user-1000.slice/pids.max
         10813
@@ -148,9 +151,41 @@ On Linux:
         $
 
     Apparently there's a limit of 10813 pids imposed by my shell's cgroup's
-    parent. To raise that limit, we can simply write another value to the file,
+    parent. (This is 33% of the To raise that limit, we can simply write another value to the file,
     as root:
 
         $ sudo sh -c 'echo 100000 > /sys/fs/cgroup/pids/user.slice/user-1000.slice/pids.max'
 
-With these changes made, I was able to run `thread-brigade` with 49000 tasks.
+-   The kernel parameter `kernel.threads-max` is a system-wide limit on the
+    number of threads. You probably won't run into this.
+
+        $ sysctl kernel.threads-max
+        kernel.threads-max = 255208
+        $
+
+-   There is a limit on the number of processes that can run under a given real
+    user ID:
+
+        $ ulimit -u
+        127604
+        $
+
+    At the system call level, this is the `getrlimit(2)` system call's
+    `RLIMIT_NPROC` resource. This, too, you're unlikely to run into.
+
+-   The default thread stack size is 8MiB:
+
+        $ ulimit -s
+        8192
+        $
+
+    You might expect this to limit a 32GiB (x86_64) machine to 4096 threads, but
+    the kernel only allocates physical memory to a stack as the thread touches
+    its pages, so the actual initial memory consumption of a thread in user
+    space is actually only around 8kiB. At this size, 32GiB could accommodate
+    4Mi threads. Again, this is unlikely to be the limiting factor.
+
+    Although it doesn't matter, `thread-brigade` program in this repository
+    requests a 1MiB stack for each thread, which is plenty for our purposes.
+
+With these changes made, I was able to run `thread-brigade` with 80000 tasks.
