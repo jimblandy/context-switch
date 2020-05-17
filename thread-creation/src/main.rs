@@ -1,64 +1,78 @@
-use std::sync::Arc;
-use std::sync::{Condvar, Mutex};
 use std::thread;
 use std::time::Instant;
 use utils::{Stats, UsefulDuration};
 
 fn main() {
-    const NUM_THREADS: usize = 20;
-    const NUM_REPS: usize = 10000;
+    const NUM_THREADS: usize = 1000;
+    const NUM_WARMUP: usize = 10;
+    const NUM_REPS: usize = 100;
 
-    let original_pair = Arc::new((Mutex::new(false), Condvar::new()));
-
-    // First, create a bunch of threads, and then let them all exit. This should
-    // allocate stacks for them, which I think NPTL will cache and reuse when a
-    // new thread is created.
-    let mut handles = Vec::with_capacity(NUM_THREADS);
-    for _ in 0..NUM_THREADS {
-        let pair = original_pair.clone();
-        handles.push(thread::spawn(move || {
-            let (lock, cvar) = &*pair;
-            let mut guard = lock.lock().unwrap();
-            while !*guard {
-                guard = cvar.wait(guard).unwrap();
-            }
-        }));
+    struct StartedThread {
+        start_time: Instant,
+        handle: thread::JoinHandle<Instant>,
     }
 
-    // Tell them all to exit.
-    {
-        let (lock, cvar) = &*original_pair;
-        let mut guard = lock.lock().unwrap();
-        *guard = true;
-        cvar.notify_all();
+    struct FinishedThread {
+        start_time: Instant,
+        end_time: Instant,
     }
 
-    // Wait for them all to finish.
-    for handle in handles.drain(..) {
-        handle.join().unwrap();
-    }
+    let mut started = Vec::with_capacity(NUM_THREADS);
+    let mut finished = Vec::with_capacity(NUM_THREADS);
 
-    // Measure the time to create a fresh batch, and let them exit.
-    let mut stats = Stats::new();
-    for _ in 0..NUM_REPS {
-        let start = Instant::now();
+    eprintln!("{} threads, {} warmups, {} iterations:", NUM_THREADS, NUM_WARMUP, NUM_REPS);
+
+    // Do a few warmup passes.
+    for _warmup in 0..NUM_WARMUP {
+        started.clear();
+        finished.clear();
 
         for _ in 0..NUM_THREADS {
-            handles.push(thread::spawn(move || { }));
+            let start_time = Instant::now();
+            let handle = thread::spawn(move || { Instant::now() });
+            started.push(StartedThread { start_time, handle });
         }
 
-        // Wait for them all to finish.
-        for handle in handles.drain(..) {
-            handle.join().unwrap();
-        }
-
-        let end = Instant::now();
-        stats.push(UsefulDuration::from(end - start).into());
+        finished.extend(started.drain(..)
+                        .map(|StartedThread { start_time, handle }| {
+                            let end_time = handle.join().unwrap();
+                            FinishedThread { start_time, end_time }
+                        }));
     }
 
-    println!("{} iterations, {} threads, mean {} per iteration, stddev {} ({} per task per iter)",
-             NUM_REPS, NUM_THREADS,
-             UsefulDuration::from(stats.mean()),
-             UsefulDuration::from(stats.population_stddev()),
-             UsefulDuration::from(stats.mean() / NUM_THREADS as f64));
+    // Do the real passes.
+    let mut creation_times = Stats::new();
+    let mut started_times = Stats::new();
+    for _rep in 0..NUM_REPS {
+        started.clear();
+        finished.clear();
+
+        let start_creation = Instant::now();
+        for _ in 0..NUM_THREADS {
+            let start_time = Instant::now();
+            let handle = thread::spawn(move || { Instant::now() });
+            started.push(StartedThread { start_time, handle });
+        }
+        let end_creation = Instant::now();
+        creation_times.push(UsefulDuration::from(end_creation - start_creation).into());
+
+        finished.extend(started.drain(..)
+                        .map(|StartedThread { start_time, handle }| {
+                            let end_time = handle.join().unwrap();
+                            FinishedThread { start_time, end_time }
+                        }));
+
+        started_times.extend(finished.iter()
+                             .map(|FinishedThread { start_time, end_time }| {
+                                 UsefulDuration::from(*end_time - *start_time).into()
+                             }));
+    }
+
+    eprintln!("create a thread: mean {} per iter, stddev {} ({} per thread)",
+              UsefulDuration::from(creation_times.mean()),
+              UsefulDuration::from(creation_times.population_stddev()),
+              UsefulDuration::from(creation_times.mean() / NUM_THREADS as f64));
+    eprintln!("creation to body: mean {}, stddev {}",
+              UsefulDuration::from(started_times.mean()),
+              UsefulDuration::from(started_times.population_stddev()));
 }
