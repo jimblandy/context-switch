@@ -60,7 +60,7 @@ task's working set, and that difference might become less significant. But I was
 able to run async-brigade with 250,000 tasks; I wasn't able to get my laptop
 to run 250,000 threads at all.
 
-The other programs are minor variations:
+The other programs are minor variations, or make other measurements:
 
 -   `async-mem-brigade` uses `tokio:sync::mpsc` channels to send `usize` values
     from one async channel to another. This performs the same number of
@@ -70,6 +70,8 @@ The other programs are minor variations:
 -   `one-thread-brigade` attempts to measure the cost of the pipe I/O alone, by
     creating all the pipes but having a single thread do all the reading and
     writing to propagate the byte from the first to the last.
+
+-   `thread-creation` attempts to measure the time required to create a thread.
 
 ## Running tests with large numbers of threads
 

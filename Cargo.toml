@@ -4,5 +4,6 @@ members = [
         "async-mem-brigade",
         "one-thread-brigade",
         "thread-brigade",
+        "thread-creation",
         "utils",
 ]
