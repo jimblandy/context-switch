@@ -7,6 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "0.2", features = [ "io-util", "macros", "rt-core", "uds" ] }
+docopt = "1"
 libc = "0.2"
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "0.2", features = [ "io-util", "macros", "rt-core", "uds" ] }
 utils = { path = "../utils" }

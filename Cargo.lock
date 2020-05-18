@@ -12,7 +12,9 @@ dependencies = [
 name = "async-brigade"
 version = "0.1.0"
 dependencies = [
+ "docopt 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.69 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.110 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
  "utils 0.1.0",
 ]

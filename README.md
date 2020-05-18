@@ -1,34 +1,52 @@
-# Comparison of Rust async and Linux thread context switch time
+# Comparison of Rust async and Linux thread context switch time and memory use
 
-These are a few programs that try to measure context switch time in various ways.
+These are a few programs that try to measure context switch time and task memory
+use in various ways.
 
 The programs `thread-brigade` and `async-brigade` each create 500 tasks
 connected by pipes (like a “bucket brigade”) and measure how long it takes to
 propagate a single byte from the first to the last. One is implemented with
 threads, and the other is implemented with the Tokio crate's async I/O.
 
-    $ cd async-brigade
-    $ time cargo run --release
-       Compiling async-brigade v0.1.0 (/home/jimb/rust/async/context-switch/async-brigade)
-        Finished release [optimized] target(s) in 0.56s
-         Running `/home/jimb/rust/async/context-switch/target/release/async-brigade`
-    10000 iterations, 500 tasks, mean 1.858ms per iteration, stddev 129.544µs
-    12.49user 8.39system 0:19.37elapsed 107%CPU (0avgtext+0avgdata 152832maxresident)k
+    $ cd async-brigade/
+    $ /bin/time cargo run --release
+        Finished release [optimized] target(s) in 0.02s
+         Running `/home/jimb/rust/context-switch/target/release/async-brigade`
+    500 tasks, 10000 iterations:
+    mean 1.795ms per iteration, stddev 82.016µs (3.589µs per task per iter)
+    9.83user 8.33system 0:18.19elapsed 99%CPU (0avgtext+0avgdata 17144maxresident)k
+    0inputs+0outputs (0major+2283minor)pagefaults 0swaps
     $
 
     $ cd ../thread-brigade
-    $ time cargo run --release
-       Compiling thread-brigade v0.1.0 (/home/jimb/rust/async/context-switch/thread-brigade)
-        Finished release [optimized] target(s) in 0.26s
-         Running `/home/jimb/rust/async/context-switch/target/release/thread-brigade`
-    10000 iterations, 500 tasks, mean 2.763ms per iteration, stddev 537.584µs
-    10.16user 27.47system 0:28.26elapsed 133%CPU (0avgtext+0avgdata 133520maxresident)k
-    0inputs+5568outputs (13major+23830minor)pagefaults 0swaps
+    $ /bin/time cargo run --release
+        Finished release [optimized] target(s) in 0.02s
+         Running `/home/jimb/rust/context-switch/target/release/thread-brigade`
+    500 tasks, 10000 iterations:
+    mean 2.657ms per iteration, stddev 231.822µs (5.313µs per task per iter)
+    9.14user 27.88system 0:26.91elapsed 137%CPU (0avgtext+0avgdata 16784maxresident)k
+    0inputs+0outputs (0major+3381minor)pagefaults 0swaps
     $
 
-In these runs, I'm seeing 1.8 / 2.7 ≅ 0.67 or a 30% speedup from going async.
-The `thread-brigade` version has a resident set size of about 6.1MiB, whereas
-`async-brigade` runs in about 2.2MiB.
+In these runs, I'm seeing 18.19s / 26.91s ≅ 0.68 or a 30% speedup from going
+async. However, if I pin the threaded version to a single core, the speed
+advantage of async disappears:
+
+    $ taskset --cpu-list 1 /bin/time cargo run --release
+        Finished release [optimized] target(s) in 0.02s
+         Running `/home/jimb/rust/context-switch/target/release/thread-brigade`
+    500 tasks, 10000 iterations:
+    mean 1.709ms per iteration, stddev 102.926µs (3.417µs per task per iter)
+    4.81user 12.50system 0:17.37elapsed 99%CPU (0avgtext+0avgdata 16744maxresident)k
+    0inputs+0outputs (0major+3610minor)pagefaults 0swaps
+    $
+
+It would be interesting to see whether/how the number of tasks in the brigade
+affects these numbers.
+
+Per-thread resident memory use in `thread-brigade` is about 9.5KiB, whereas
+per-async-task memory use in `async-brigade` is around 0.4KiB, a factor of ~20.
+See 'Measuring memory use', below.
 
 There are differences in the system calls performed by the two versions:
 
@@ -82,11 +100,15 @@ The other programs are minor variations, or make other measurements:
 
 ## Measuring memory use
 
-The script `thread-brigade/measure.sh` runs `thread-brigade` with varying
-numbers of threads, and measures its virtual and resident memory consumption at
-each count. You can then do a simple linear regression to see the memory use of
-a single thread. In my measurements, each thread costs around 9.5KiB in user
-space.
+The scripts `thread-brigade/measure.sh` and `async-brigade/measure.sh` run their
+respective brigade microbenchmarks with varying numbers of tasks, and measure
+the virtual and resident memory consumption at each count. You can then do a
+linear regression to see the memory use of a single task. Note that
+`async-brigade/measure.sh` runs 10x as many tasks, to keep the noise down.
+
+As mentioned above, in my measurements, each thread costs around 9.5KiB, and
+each async task costs around 0.4KiB, so the async version uses about 1/20th as
+much memory as the threaded version.
 
 To run this script, you'll need to have the Linux `pmap` utility installed; this
 gives an accurate measurement of resident set size. On Fedora, this is included
