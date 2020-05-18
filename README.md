@@ -37,8 +37,15 @@ There are differences in the system calls performed by the two versions:
 
 - In `async-brigade`, each task does one `recvfrom` and one `write`, neither of
   which block, and then one more `recvfrom`, which returns `EAGAIN` and suspends
-  the task. Then control returns to the executor, which calls `epoll` to see
-  which task to wake up next. All this takes 3.6µs.
+  the task. Then control returns to the executor. The reactor thread calls
+  `epoll` to see which pipes are readable, and tells the executor that task to
+  run next. All this takes 3.6µs.
+
+- In `one-thread-brigade`, we build the pipes but just have a single thread loop
+  through them all and do the reads and writes. This gives us a baseline cost
+  for the I/O operations themselves, which we can subtract off from the times in
+  the other two programs, in hopes that the remainder reflects the cost of the
+  context switches alone.
 
 The `async-brigade` performance isn't affected much if we switch from Tokio's
 default multi-thread executor to a single-threaded executor, so it's not
