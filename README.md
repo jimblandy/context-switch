@@ -194,8 +194,9 @@ On Linux:
         $
 
     Apparently there's a limit of 10813 pids imposed by my shell's cgroup's
-    parent. (This is 33% of the To raise that limit, we can simply write another value to the file,
-    as root:
+    parent. (This is 33% of the kernel's default limit of around 32k, chosen by
+    the systemd login manager.) To raise that limit, we can simply write another
+    value to the file, as root:
 
         $ sudo sh -c 'echo 100000 > /sys/fs/cgroup/pids/user.slice/user-1000.slice/pids.max'
 
