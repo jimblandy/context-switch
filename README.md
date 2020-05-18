@@ -80,6 +80,18 @@ The other programs are minor variations, or make other measurements:
 
 -   `thread-creation` attempts to measure the time required to create a thread.
 
+## Measuring memory use
+
+The script `thread-brigade/measure.sh` runs `thread-brigade` with varying
+numbers of threads, and measures its virtual and resident memory consumption at
+each count. You can then do a simple linear regression to see the memory use of
+a single thread. In my measurements, each thread costs around 9.5KiB in user
+space.
+
+To run this script, you'll need to have the Linux `pmap` utility installed; this
+gives an accurate measurement of resident set size. On Fedora, this is included
+in the `procps-ng` package.
+
 ## Running tests with large numbers of threads
 
 It's interesting to play with the number of tasks to see how that affects the
