@@ -3,7 +3,7 @@
 set -eu
 
 if ! [ -f Cargo.toml ]; then
-    echo "Run in top-level directory of thread-brigade package." >&2
+    echo "Run in top-level directory of async-brigade package." >&2
     exit 1
 fi
 

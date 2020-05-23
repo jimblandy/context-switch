@@ -100,11 +100,12 @@ The other programs are minor variations, or make other measurements:
 
 ## Measuring memory use
 
-The scripts `thread-brigade/measure.sh` and `async-brigade/measure.sh` run their
-respective brigade microbenchmarks with varying numbers of tasks, and measure
-the virtual and resident memory consumption at each count. You can then do a
-linear regression to see the memory use of a single task. Note that
-`async-brigade/measure.sh` runs 10x as many tasks, to keep the noise down.
+The scripts `thread-brigade/rss-per-thread.sh` and
+`async-brigade/rss-per-task.sh` run their respective brigade microbenchmarks
+with varying numbers of tasks, and measure the virtual and resident memory
+consumption at each count. You can then do a linear regression to see the memory
+use of a single task. Note that `async-brigade/rss-per-task.sh` runs 10x as many
+tasks, to keep the noise down.
 
 As mentioned above, in my measurements, each thread costs around 9.5KiB, and
 each async task costs around 0.4KiB, so the async version uses about 1/20th as
