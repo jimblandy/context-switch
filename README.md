@@ -4,15 +4,13 @@ These are a few programs that try to measure context switch time and task memory
 use in various ways. In summary:
 
 -   A context switch takes around 0.2µs between async tasks, versus 1.7µs
-    between kernel threads.
+    between kernel threads. But this advantage goes away if the context switch
+    is due to I/O readiness: both converge to 1.7µs. The async advantage also
+    goes away in our benchmark if the program is pinned to a single core. So
+    inter-core communication is something to watch out for.
 
--   That advantage goes away if the context switch is due to I/O readiness: both
-    converge to 1.7µs.
-
--   The advantage also goes away if the test is pinned to a single core. So
-    inter-core communication is a major influence.
-
--   Creating a new thread takes r
+-   Creating a new task takes ~300ns for an async task, versus ~17µs for a new
+    kernel thread.
 
 -   Memory consumption per task (i.e. for a task that doesn't do much) starts at
     around a few hundred bytes for an async task, versus around 20KiB (9.5KiB
