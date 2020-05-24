@@ -1,7 +1,31 @@
 # Comparison of Rust async and Linux thread context switch time and memory use
 
 These are a few programs that try to measure context switch time and task memory
-use in various ways.
+use in various ways. In summary:
+
+-   A context switch takes around 0.2µs between async tasks, versus 1.7µs
+    between kernel threads.
+
+-   That advantage goes away if the context switch is due to I/O readiness: both
+    converge to 1.7µs.
+
+-   The advantage also goes away if the test is pinned to a single core. So
+    inter-core communication is a major influence.
+
+-   Creating a new thread takes r
+
+-   Memory consumption per task (i.e. for a task that doesn't do much) starts at
+    around a few hundred bytes for an async task, versus around 20KiB (9.5KiB
+    user, 10KiB kernel) for a kernel thread. This is a minimum: more demanding
+    tasks will naturally use more.
+
+-   It's no problem to create 250,000 async tasks, but I was only able to get my
+    laptop to run 80,000 threads (4 core, two way HT, 32GiB).
+
+These are probably not the limiting factors in your application, but it's nice
+to know that the headroom is there.
+
+## Measuring thread context time
 
 The programs `thread-brigade` and `async-brigade` each create 500 tasks
 connected by pipes (like a “bucket brigade”) and measure how long it takes to
@@ -96,7 +120,8 @@ The other programs are minor variations, or make other measurements:
     creating all the pipes but having a single thread do all the reading and
     writing to propagate the byte from the first to the last.
 
--   `thread-creation` attempts to measure the time required to create a thread.
+-   `thread-creation` and `async-creation` attempt to measure the time
+    required to create a thread / async task.
 
 ## Measuring memory use
 

@@ -1,6 +1,6 @@
+use async_std::task;
 use docopt::Docopt;
 use serde::Deserialize;
-use std::thread;
 use std::time::Instant;
 use utils::{Stats, UsefulDuration};
 
@@ -15,7 +15,7 @@ Usage:
   task-creation [--tasks N] [--iters N] [--warmups N]
 
 Options:
-  --tasks <N>     Number of tasks. [default: 1000]
+  --tasks <N>     Number of tasks. [default: 10000]
   --iters <N>       Number of iterations to perform. [default: 100]
   --warmups <N>     Number of warmup iterations to perform before benchmarking.
                     [default: 10]
@@ -35,7 +35,7 @@ fn main() {
 
     struct StartedTask {
         start_time: Instant,
-        handle: thread::JoinHandle<Instant>,
+        handle: task::JoinHandle<Instant>,
     }
 
     struct FinishedTask {
@@ -55,13 +55,13 @@ fn main() {
 
         for _ in 0..args.flag_tasks {
             let start_time = Instant::now();
-            let handle = thread::spawn(move || { Instant::now() });
+            let handle = task::spawn(async move { Instant::now() });
             started.push(StartedTask { start_time, handle });
         }
 
         finished.extend(started.drain(..)
                         .map(|StartedTask { start_time, handle }| {
-                            let end_time = handle.join().unwrap();
+                            let end_time = task::block_on(handle);
                             FinishedTask { start_time, end_time }
                         }));
     }
@@ -76,7 +76,7 @@ fn main() {
         let start_creation = Instant::now();
         for _ in 0..args.flag_tasks {
             let start_time = Instant::now();
-            let handle = thread::spawn(move || { Instant::now() });
+            let handle = task::spawn(async move { Instant::now() });
             started.push(StartedTask { start_time, handle });
         }
         let end_creation = Instant::now();
@@ -84,7 +84,7 @@ fn main() {
 
         finished.extend(started.drain(..)
                         .map(|StartedTask { start_time, handle }| {
-                            let end_time = handle.join().unwrap();
+                            let end_time = task::block_on(handle);
                             FinishedTask { start_time, end_time }
                         }));
 
