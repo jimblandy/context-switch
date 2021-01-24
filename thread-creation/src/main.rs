@@ -15,7 +15,7 @@ Usage:
   task-creation [--tasks N] [--iters N] [--warmups N]
 
 Options:
-  --tasks <N>     Number of tasks. [default: 1000]
+  --tasks <N>       Number of tasks. [default: 1000]
   --iters <N>       Number of iterations to perform. [default: 100]
   --warmups <N>     Number of warmup iterations to perform before benchmarking.
                     [default: 10]
