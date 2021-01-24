@@ -170,38 +170,51 @@ On Linux:
 
 -   Process ID numbers can also be limited by the `pids` cgroup controller.
 
-    A cgroup is a collection of processes/threads on which you can impose system
-    resource limits as a group. Cgroups themselves are arranged in trees called
-    *hierarchies*, where limits set on one cgroup apply to its descendant
-    cgroups' members as well. The cgroups in a hierarchy have names that look
-    like filesystem paths; the root cgroup is named `/`. The details get
-    byzantine, but the upshot is that (in 2020, Linux 5.5) a typical Linux
-    system has several independent hierarchies, each managing a different sort
-    of resource: memory, cpu cycles, network bandwidth, and so on. For each
-    hierarchy, every process/thread on the system belongs to exactly one cgroup,
-    which it inherits from the process/thread that created it.
+    A cgroup is a collection of processes on which you can impose system
+    resource limits as a group. Every process belongs to exactly one cgroup.
+    When one process creates another, the new process is placed in the same
+    cgroup as its parent.
 
-    The `pids` controller limits the number of process IDs a cgroup can have.
-    You can see which `pids` cgroup your shell is in like this:
+    Cgroups are arranged in a tree, where limits set on a cgroup apply to that
+    group and all its descendants. Only leaf cgroups actually contain
+    processes/threads. The cgroups in the hierarchy have names that look like
+    filesystem paths; the root cgroup is named `/`.
 
-        $ grep pids /proc/$$/cgroup
-        2:pids:/user.slice/user-1000.slice/user@1000.service
+    You can see which cgroup your shell belongs to like this:
 
-    This indicates that, in the `pids` hierarchy, my shell is in a cgroup named
-    `/user.slice/user-1000.slice/user@1000.service`.
+        $ cat /proc/$$/cgroup
+        0::/user.slice/user-1000.slice/gargle/howl.scope
 
-    On Fedora, at least, the `pids` controller's hierarchy is reflected in the
-    ordinary filesystem as a directory tree under `/sys/fs/cgroup/pids`, so my
-    shell's cgroup is here:
+    This indicates that my shell is in a cgroup named
+    `/user.slice/user-1000.slice/gargle/howl.scope`. The names can get quite
+    long, so this example is simplified.
 
-        $ ls /sys/fs/cgroup/pids/user.slice/user-1000.slice/user@1000.service
-        cgroup.clone_children  notify_on_release  pids.events  tasks
-        cgroup.procs	       pids.current	      pids.max
+    On Fedora, at least, the cgroup hierarchy is reflected in the ordinary
+    filesystem as a directory tree under `/sys/fs/cgroup`, so my shell's
+    cgroup appears as a directory here:
+
+        $ ls /sys/fs/cgroup/user.slice/user-1000.slice/gargle/howl.scope
+        cgroup.controllers	    cpu.stat	         memory.pressure
+        cgroup.events		    io.pressure	         memory.stat
+        cgroup.freeze		    memory.current	     memory.swap.current
+        cgroup.max.depth	    memory.events	     memory.swap.events
+        cgroup.max.descendants	memory.events.local  memory.swap.high
+        cgroup.procs		    memory.high	         memory.swap.max
+        cgroup.stat		        memory.low	         pids.current
+        cgroup.subtree_control	memory.max	         pids.events
+        cgroup.threads		    memory.min	         pids.max
+        cgroup.type		        memory.numa_stat
+        cpu.pressure		    memory.oom.group
         $
 
-    The file `pids.max` shows the limit this cgroup imposes on my shell:
+    You can inspect and manipulate cgroups by looking at these files. Some
+    represent different resources that can be limited, while others relate to
+    the cgroup hierarchy itself.
 
-        $ cat /sys/fs/cgroup/pids/user.slice/user-1000.slice/user@1000.service/pids.max
+    In particular, the file `pids.max` shows the limit this cgroup imposes on my
+    shell:
+
+        $ cat /sys/fs/cgroup/user.slice/user-1000.slice/gargle/howl.scope/pids.max
         max
         $
 
@@ -209,20 +222,28 @@ On Linux:
     controller, at least, limits set on parent cgroups also apply to their
     descendants, so we need to check our ancestor groups:
 
-        $ cat /sys/fs/cgroup/pids/user.slice/user-1000.slice/pids.max
+        $ cat /sys/fs/cgroup/user.slice/user-1000.slice/gargle/pids.max
         10813
-        $ cat /sys/fs/cgroup/pids/user.slice/pids.max
+        $ cat /sys/fs/cgroup/user.slice/user-1000.slice/pids.max
+        84184
+        $ cat /sys/fs/cgroup/user.slice/pids.max
         max
-        $ cat /sys/fs/cgroup/pids/pids.max
-        cat: /sys/fs/cgroup/pids/pids.max: No such file or directory
+        $ cat /sys/fs/cgroup/pids.max
+        cat: /sys/fs/cgroup/pids.max: No such file or directory
         $
 
     Apparently there's a limit of 10813 pids imposed by my shell's cgroup's
-    parent. (This is 33% of the kernel's default limit of around 32k, chosen by
-    the systemd login manager.) To raise that limit, we can simply write another
-    value to the file, as root:
+    parent, and a higher limit of 84184 pids set for me as a user. (On Fedora,
+    these limits are established by systemd configuration files.) To raise that
+    limit, we can simply write another value to these files, as root:
 
-        $ sudo sh -c 'echo 100000 > /sys/fs/cgroup/pids/user.slice/user-1000.slice/pids.max'
+        $ sudo sh -c 'echo 100000 > /sys/fs/cgroup/user.slice/user-1000.slice/pids.max'
+        $ sudo sh -c 'echo max    > /sys/fs/cgroup/user.slice/user-1000.slice/gargle/pids.max'
+
+    The cgroup machinery seems to vary not only from one Linux distribution to
+    the next, but even from one version to another. So while I hope this is
+    helpful, you may need to consult other documentation. `man cgroups(7)` is a
+    good place to start, but beware, it makes my explanation here look short.
 
 -   The kernel parameter `kernel.threads-max` is a system-wide limit on the
     number of threads. You probably won't run into this.
