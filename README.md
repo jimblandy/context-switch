@@ -270,9 +270,9 @@ On Linux:
 
     You might expect this to limit a 32GiB (x86_64) machine to 4096 threads, but
     the kernel only allocates physical memory to a stack as the thread touches
-    its pages, so the actual initial memory consumption of a thread in user
-    space is actually only around 8kiB. At this size, 32GiB could accommodate
-    4Mi threads. Again, this is unlikely to be the limiting factor.
+    its pages, so the initial memory consumption of a thread in user space is
+    actually only around 8kiB. At this size, 32GiB could accommodate 4Mi
+    threads. Again, this is unlikely to be the limiting factor.
 
     Although it doesn't matter, `thread-brigade` program in this repository
     requests a 1MiB stack for each thread, which is plenty for our purposes.
