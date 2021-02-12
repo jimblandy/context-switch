@@ -9,7 +9,7 @@ use in various ways. In summary:
     goes away in our microbenchmark if the program is pinned to a single core.
     So inter-core communication is something to watch out for.
 
--   Creating a new task takes ~300ns for an async task, versus ~17µs for a new
+-   Creating a new task takes ~0.3µs for an async task, versus ~17µs for a new
     kernel thread.
 
 -   Memory consumption per task (i.e. for a task that doesn't do much) starts at
