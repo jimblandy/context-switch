@@ -23,7 +23,7 @@ use in various ways. In summary:
 These are probably not the limiting factors in your application, but it's nice
 to know that the headroom is there.
 
-## Measuring thread context time
+## Measuring thread context switch time
 
 The programs `thread-brigade` and `async-brigade` each create 500 tasks
 connected by pipes (like a “bucket brigade”) and measure how long it takes to
