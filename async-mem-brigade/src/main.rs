@@ -12,16 +12,16 @@ fn pipe() -> Result<Pipe, std::io::Error> {
     Ok(Pipe { read, write })
 }
 
-#[tokio::main(basic_scheduler)]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     const NUM_TASKS: usize = 500;
     const NUM_WARMUP_REPS: usize = 5;
     const NUM_REPS: usize = 10000;
 
-    let Pipe { read: mut upstream_read, write: mut first_write} = pipe()?;
+    let Pipe { read: mut upstream_read, write: first_write} = pipe()?;
     for _i in 0..NUM_TASKS {
         let next_pipe = pipe()?;
-        let mut downstream_write = next_pipe.write;
+        let downstream_write = next_pipe.write;
         tokio::spawn(async move {
             // Establish 'async' block's return type. Yeah.
             if false {

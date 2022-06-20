@@ -3,10 +3,10 @@ use serde::Deserialize;
 use std::process::Command;
 use std::time::Instant;
 use tokio::net::UnixStream;
-use tokio::prelude::*;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use utils::{Stats, UsefulDuration};
 
-const USAGE: &'static str = "
+const USAGE: &str = "
 Microbenchmark of context switch overhead.
 
 Create a chain of Rust asynchronous tasks connected together by pipes, each one
@@ -85,14 +85,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Warm up.
     for _i in 0..args.flag_warmups {
         first_write.write_all(b"*").await?;
-        upstream_read.read(&mut buf).await?;
+        upstream_read.read_exact(&mut buf).await?;
     }
 
     let mut stats = Stats::new();
     for _i in 0..args.flag_iters {
         let start = Instant::now();
         first_write.write_all(b"*").await?;
-        upstream_read.read(&mut buf).await?;
+        upstream_read.read_exact(&mut buf).await?;
         let end = Instant::now();
 
         stats.push(UsefulDuration::from(end - start).into());
