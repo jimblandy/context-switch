@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             pipe.write.write_all(&buf)?;
         }
         Ok(())
-    };
+    }
 
     let mut buf = [0_u8; 1];
 
