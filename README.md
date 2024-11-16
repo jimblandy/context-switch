@@ -19,7 +19,8 @@ use in various ways. In summary:
 
 -   It's no problem to create 250,000 async tasks, but I was only able to get my
     laptop to run 80,000 threads (4 core, two way HT, 32GiB), even after raising
-    every limit I could find. So I don't know what's imposing this limit.
+    every limit I could find. So I don't know what's imposing this limit. See
+    "Running tests with large numbers of threads", below.
 
 These are probably not the limiting factors in your application, but it's nice
 to know that the headroom is there.
