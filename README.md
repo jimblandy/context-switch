@@ -18,7 +18,8 @@ use in various ways. In summary:
     tasks will naturally use more.
 
 -   It's no problem to create 250,000 async tasks, but I was only able to get my
-    laptop to run 80,000 threads (4 core, two way HT, 32GiB).
+    laptop to run 80,000 threads (4 core, two way HT, 32GiB), even after raising
+    every limit I could find. So I don't know what's imposing this limit.
 
 These are probably not the limiting factors in your application, but it's nice
 to know that the headroom is there.
@@ -282,7 +283,9 @@ On Linux:
     Although it doesn't matter, `thread-brigade` program in this repository
     requests a 1MiB stack for each thread, which is plenty for our purposes.
 
-With these changes made, I was able to run `thread-brigade` with 80000 tasks.
+With these changes made, I was able to run `thread-brigade` with 80000 tasks. I
+tried to run more, but even after raising every limit I could identify, I still
+got errors. So I don't know what imposes this limit.
 
 ## Does any of this matter?
 
